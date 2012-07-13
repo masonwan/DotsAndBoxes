@@ -118,8 +118,6 @@ function changeBoardSize() {
 	}
 }
 
-var step = 1;
-
 function onLineClicked() {
 	var target = event.target;
 	var line = game.board.lines[target.lineId];
@@ -130,8 +128,6 @@ function onLineClicked() {
 	}
 
 	line.owner = game.currentPlayer;
-	line.element.innerText = step;
-	++step;
 
 	target.classList.add(getPlayerClass(game.currentPlayer));
 	target.classList.remove('none');
