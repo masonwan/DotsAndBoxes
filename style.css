@@ -8,7 +8,6 @@ body
     padding: 0;
     margin: 0;
     background-color: white;
-    font-size: xx-large;
     font-family: Calibri, Tahoma, Arial;
 }
 
@@ -18,32 +17,12 @@ body
     border-right: 5px dashed lightgray;
 }
 
-#sidebar
-{
-    min-width: 240px;
-    padding: 0 10px;
-    vertical-align: top;
-}
-
-select
-{
-    height: 60px;
-    width: 80px;
-    font-size: 50px;
-}
-
-button
-{
-    height: 60px;
-    width: 180px;
-    font-size: 50px;
-}
-
 div, table, td, tr
 {
     padding: 0;
     margin: 0;
     border: 0px;
+    font-size: xx-large;
 }
 
 .dot
@@ -79,12 +58,12 @@ div, table, td, tr
     border-radius: 15px;
 }
 
-.yellow
+.yellow, #yellowScore
 {
     background-color: #ffd800;
 }
 
-.green
+.green, #greenScore
 {
     background-color: green;
 }
@@ -92,4 +71,31 @@ div, table, td, tr
 .none:hover
 {
     background-color: lightgray;
+}
+
+/* Sidebar */
+#sidebar
+{
+    min-width: 240px;
+    padding: 0 10px;
+    vertical-align: top;
+}
+
+select
+{
+    height: 60px;
+    width: 80px;
+    font-size: 150%;
+}
+
+button
+{
+    height: 60px;
+    width: 180px;
+    font-size: 150%;
+}
+
+#yellowScore, #greenScore
+{
+    text-align: center;
 }

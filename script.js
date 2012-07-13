@@ -80,6 +80,27 @@ function generateBoard() {
 	}
 
 	changeBoardSize();
+	updateScoreBoard();
+}
+
+function updateScoreBoard() {
+	var boxes = game.board.boxList;
+	var scoreTable = {};
+	scoreTable[GREEN] = 0;
+	scoreTable[YELLOW] = 0;
+
+	for (var i = 0; i < boxes.length; i++) {
+		var box = boxes[i];
+
+		if (box.owner !== null) {
+			scoreTable[box.owner]++;
+		}
+	}
+
+	var yellowDiv = document.querySelector('#yellowScore');
+	yellowDiv.innerText = scoreTable[YELLOW];
+	var greenDiv = document.querySelector('#greenScore');
+	greenDiv.innerText = scoreTable[GREEN];
 }
 
 function changeBoardSize() {
@@ -123,30 +144,25 @@ function onLineClicked() {
 	var line = game.board.lines[target.lineId];
 
 	if (line.owner !== null) {
-		console.log('The line is owned by ' + getPlayerClass(line.owner));
 		return;
 	}
-
-	line.owner = game.currentPlayer;
 
 	target.classList.add(getPlayerClass(game.currentPlayer));
 	target.classList.remove('none');
 
+	game.play(line);
+
 	var boxes = line.boxes;
-	var isAnyBoxOwned = false;
 
 	for (var i = 0; i < boxes.length; i++) {
 		var box = boxes[i];
 
 		if (box.owner !== null) {
-			isAnyBoxOwned = true;
 			box.element.classList.add(getPlayerClass(box.owner));
 		}
 	}
 
-	if (isAnyBoxOwned === false) {
-		game.changePlayer();
-	}
+	updateScoreBoard();
 }
 
 function onRestartClicked() {
@@ -180,10 +196,37 @@ Game = (function () {
 		this.board = new Board(numRows, numCols);
 		this.currentPlayer = currentPlayer;
 		this.opponentPlayer = -currentPlayer;
+		this.records = [];
 	}
 
-	function play() {
+	Game.prototype.play = function (line) {
+		if (line == null) {
+			throw 'line is null';
+		}
 
+		if (line.owner !== null) {
+			return;
+		}
+
+		line.owner = game.currentPlayer;
+
+		var boxes = line.boxes;
+		var doesOwn = false;
+
+		for (var i = 0; i < boxes.length; i++) {
+			var box = boxes[i];
+
+			if (box.owner !== null) {
+				doesOwn = true;
+				break;
+			}
+		}
+
+		if (doesOwn === false) {
+			this.changePlayer();
+		}
+
+		this.records.push(line);
 	}
 
 	return Game;
