@@ -1,0 +1,95 @@
+html
+{
+    height: 100%;
+}
+
+body
+{
+    padding: 0;
+    margin: 0;
+    background-color: white;
+    font-size: xx-large;
+    font-family: Calibri, Tahoma, Arial;
+}
+
+#board
+{
+    padding: 0 10px;
+    border-right: 5px dashed lightgray;
+}
+
+#sidebar
+{
+    min-width: 240px;
+    padding: 0 10px;
+    vertical-align: top;
+}
+
+select
+{
+    height: 60px;
+    width: 80px;
+    font-size: 50px;
+}
+
+button
+{
+    height: 60px;
+    width: 180px;
+    font-size: 50px;
+}
+
+div, table, td, tr
+{
+    padding: 0;
+    margin: 0;
+    border: 0px;
+}
+
+.dot
+{
+    width: 10px;
+    height: 10px;
+    background-color: black;
+    border-radius: 100%;
+}
+
+.vline, .hline
+{
+    border-radius: 15px;
+}
+
+.vline
+{
+    width: 10px;
+    height: 90px;
+}
+
+.hline
+{
+    width: 90px;
+    height: 10px;
+}
+
+.box
+{
+    width: 90px;
+    height: 90px;
+    background-color: lightgray;
+    border-radius: 15px;
+}
+
+.yellow
+{
+    background-color: #ffd800;
+}
+
+.green
+{
+    background-color: green;
+}
+
+.none:hover
+{
+    background-color: lightgray;
+}
