@@ -130,7 +130,6 @@ function continuePlay() {
 		}
 
 		var player = players[game.currentPlayer];
-		console.log('Player is ', player || 'human');
 
 		if (player === null) {
 			// Human player, wait for play.
