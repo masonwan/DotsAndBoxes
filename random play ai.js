@@ -3,7 +3,7 @@ if (!window.aiList) {
 }
 
 window.aiList.push({
-	name: 'Random AI',
+	name: 'Random Play AI',
 	think: function (game) {
 		if (game.isEnded) {
 			return null;
