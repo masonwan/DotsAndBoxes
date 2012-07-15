@@ -1,33 +1,183 @@
+if (!window.aiList) {
+	window.aiList = [];
+}
+
 document.addEventListener('readystatechange', onReadyStateChanged);
 
 var game = null;
 var YELLOW = 1, GREEN = -1;
 var numRows = numCols = 5;
+var players = {};
+players[YELLOW] = null;
+players[GREEN] = null;
 
 function onReadyStateChanged() {
 	document.removeEventListener('readystatechange', onReadyStateChanged);
 
-	var selectElement = document.querySelector('select');
-	selectElement.addEventListener('change', onSelectChanged);
-	onSelectChanged();
+	// Grid size
+	var selectElement = document.querySelector('#gridSize');
+	selectElement.addEventListener('change', onGridSizeChanged);
+	onGridSizeChanged();
 
+	// Resize
 	window.addEventListener('resize', changeBoardSize);
 
 	var restartButton = document.querySelector('#restart');
 	restartButton.addEventListener('click', onRestartClicked);
+
+	// Player options
+	var selectElements = document.querySelectorAll('.player');
+
+	for (var i = 0; i < selectElements.length; i++) {
+		selectElements[i].addEventListener('change', onPlayerChanged);
+	}
+
+	generatePlayerOptions();
+	//selectElements[1].options[1].selected = true;
 }
 
-function onSelectChanged() {
+// Grid size
+function onGridSizeChanged() {
 	var selectElement = document.querySelector('select');
 	var value = selectElement.value;
 	numRows = numCols = (value < 3 || value > 10) ? 3 : parseInt(value);
-	game = new Game(numRows, numCols, GREEN);
+	game = new Game(numRows, numCols, YELLOW);
 
 	console.log(game);
 
 	generateBoard();
+	continuePlay();
 }
 
+function changeBoardSize() {
+	var ratioDotToBox = 4;
+	var boardLength = Math.min(window.innerHeight, window.innerWidth * 0.8, window.innerWidth - 240) - 20;
+	var dotLength = Math.floor(boardLength / ((ratioDotToBox * numRows) + (numRows + 1)));
+	var boxLength = dotLength * ratioDotToBox;
+
+	var elementNodeList = document.querySelectorAll('td, tr');
+
+	for (var i = 0; i < elementNodeList.length; i++) {
+		var element = elementNodeList[i];
+		var height, width;
+
+		switch (element.className) {
+			case 'dot':
+				height = width = dotLength;
+				break;
+			case 'vline':
+				height = boxLength;
+				width = dotLength;
+				break;
+			case 'hline':
+				height = dotLength;
+				width = boxLength;
+				break;
+			case 'box':
+				height = width = boxLength;
+				break;
+			default:
+				continue;
+		}
+
+		element.style.height = height + 'px';
+		element.style.width = width + 'px';
+	}
+}
+
+// Player, AI
+function generatePlayerOptions() {
+	var selectElements = document.querySelectorAll('.player');
+
+	for (var i = 0; i < selectElements.length; i++) {
+		var optionElement;
+		optionElement = document.createElement('option');
+		optionElement.value = 0;
+		optionElement.selected = true;
+		optionElement.innerText = 'Human';
+		selectElements[i].appendChild(optionElement);
+
+		for (var j = 0; j < aiList.length; j++) {
+			var ai = aiList[j];
+			optionElement = document.createElement('option');
+			optionElement.value = j + 1;
+			optionElement.innerText = ai.name;
+
+			selectElements[i].appendChild(optionElement);
+		}
+	}
+}
+
+function onPlayerChanged() {
+	var target = event.target;
+	var index = parseInt(target.value);
+	console.log('index: ' + index);
+	var player = (index === 0) ? null : aiList[index - 1];
+
+	if (target.classList.contains('yellow')) {
+		players[YELLOW] = player;
+	} else if (target.classList.contains('green')) {
+		players[GREEN] = player;
+	}
+
+	continuePlay();
+}
+
+function continuePlay() {
+	while (true) {
+		if (game.isEnded) {
+			return;
+		}
+
+		var player = players[game.currentPlayer];
+		console.log('Player is ', player || 'human');
+
+		if (player === null) {
+			// Human player, wait for play.
+			return;
+		}
+
+		var line = player.think(game);
+		playLine(line);
+	}
+}
+
+function onLineClicked() {
+	if (players[game.currentPlayer] !== null) {
+		return;
+	}
+
+	var target = event.target;
+	var line = game.board.lines[target.lineId];
+
+	if (line.owner !== null) {
+		return;
+	}
+
+	playLine(line);
+	continuePlay();
+}
+
+function playLine(line) {
+	line.element.classList.add(getPlayerClass(game.currentPlayer));
+	line.element.classList.remove('none');
+
+	game.play(line);
+
+	var boxes = line.boxes;
+
+	for (var i = 0; i < boxes.length; i++) {
+		var box = boxes[i];
+
+		if (box.owner !== null) {
+			box.element.classList.add(getPlayerClass(box.owner));
+		}
+	}
+
+	updateScoreBoard();
+}
+
+// Board
 function generateBoard() {
 	var boardTable = document.querySelector('#board');
 	boardTable.innerHTML = '';
@@ -93,82 +243,21 @@ function updateScoreBoard() {
 		var box = boxes[i];
 
 		if (box.owner !== null) {
-			scoreTable[box.owner]++;
+			++scoreTable[box.owner];
 		}
 	}
 
-	var yellowDiv = document.querySelector('#yellowScore');
+	var yellowDiv = document.querySelector('.score.yellow');
 	yellowDiv.innerText = scoreTable[YELLOW];
-	var greenDiv = document.querySelector('#greenScore');
+	var greenDiv = document.querySelector('.score.green');
 	greenDiv.innerText = scoreTable[GREEN];
 }
 
-function changeBoardSize() {
-	var ratioDotToBox = 4;
-	var boardLength = Math.min(window.innerHeight, window.innerWidth * 0.8, window.innerWidth - 240) - 20;
-	var dotLength = Math.floor(boardLength / ((ratioDotToBox * numRows) + (numRows + 1)));
-	var boxLength = dotLength * ratioDotToBox;
-
-	var elementNodeList = document.querySelectorAll('td, tr');
-
-	for (var i = 0; i < elementNodeList.length; i++) {
-		var element = elementNodeList[i];
-		var height, width;
-
-		switch (element.className) {
-			case 'dot':
-				height = width = dotLength;
-				break;
-			case 'vline':
-				height = boxLength;
-				width = dotLength;
-				break;
-			case 'hline':
-				height = dotLength;
-				width = boxLength;
-				break;
-			case 'box':
-				height = width = boxLength;
-				break;
-			default:
-				continue;
-		}
-
-		element.style.height = height + 'px';
-		element.style.width = width + 'px';
-	}
-}
-
-function onLineClicked() {
-	var target = event.target;
-	var line = game.board.lines[target.lineId];
-
-	if (line.owner !== null) {
-		return;
-	}
-
-	target.classList.add(getPlayerClass(game.currentPlayer));
-	target.classList.remove('none');
-
-	game.play(line);
-
-	var boxes = line.boxes;
-
-	for (var i = 0; i < boxes.length; i++) {
-		var box = boxes[i];
-
-		if (box.owner !== null) {
-			box.element.classList.add(getPlayerClass(box.owner));
-		}
-	}
-
-	updateScoreBoard();
-}
-
 function onRestartClicked() {
-	onSelectChanged();
+	onGridSizeChanged();
 }
 
+// Helper
 function getPlayerClass(player) {
 	if (player === YELLOW) {
 		return 'yellow';
@@ -185,6 +274,23 @@ function getPlayerClass(player) {
 	throw 'Unknown player: ' + player;
 }
 
+Object.prototype.clone = function () {
+	var obj = (this instanceof Array) ? [] : {};
+
+	for (i in this) {
+		if (i !== 'clone') {
+			if (this[i] && typeof this[i] === 'object') {
+				obj[i] = this[i].clone();
+			} else {
+				obj[i] = this[i];
+			}
+		}
+	}
+
+	return obj;
+};
+
+// Game objects
 Game = (function () {
 	Game.prototype.changePlayer = function () {
 		var temp = this.currentPlayer;
@@ -192,11 +298,20 @@ Game = (function () {
 		this.opponentPlayer = temp;
 	}
 
+	Object.defineProperties(Game.prototype, {
+		isEnded: {
+			get: function () {
+				return this.emptyLines.length === 0;
+			}
+		}
+	});
+
 	function Game(numRows, numCols, currentPlayer) {
 		this.board = new Board(numRows, numCols);
 		this.currentPlayer = currentPlayer;
 		this.opponentPlayer = -currentPlayer;
 		this.records = [];
+		this.emptyLines = this.board.lines.slice(0);
 	}
 
 	Game.prototype.play = function (line) {
@@ -205,6 +320,7 @@ Game = (function () {
 		}
 
 		if (line.owner !== null) {
+			console.log('Play a owned line.');
 			return;
 		}
 
@@ -227,6 +343,7 @@ Game = (function () {
 		}
 
 		this.records.push(line);
+		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
 	}
 
 	return Game;
