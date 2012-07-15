@@ -297,22 +297,6 @@ Game = (function () {
 		this.opponentPlayer = temp;
 	}
 
-	Object.defineProperties(Game.prototype, {
-		isEnded: {
-			get: function () {
-				return this.emptyLines.length === 0;
-			}
-		}
-	});
-
-	function Game(numRows, numCols, currentPlayer) {
-		this.board = new Board(numRows, numCols);
-		this.currentPlayer = currentPlayer;
-		this.opponentPlayer = -currentPlayer;
-		this.records = [];
-		this.emptyLines = this.board.lines.slice(0);
-	}
-
 	Game.prototype.play = function (line) {
 		if (line == null) {
 			throw 'line is null';
@@ -343,6 +327,23 @@ Game = (function () {
 
 		this.records.push(line);
 		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
+	}
+
+	Object.defineProperties(Game.prototype, {
+		isEnded: {
+			get: function () {
+				return this.emptyLines.length === 0;
+			}
+		}
+	});
+
+	function Game(numRows, numCols, currentPlayer) {
+		this.board = new Board(numRows, numCols);
+		this.currentPlayer = currentPlayer;
+		this.opponentPlayer = -currentPlayer;
+		this.records = [];
+		this.emptyLines = this.board.lines.slice(0);
+		this.emptyBoxes = this.board.boxList.slice(0);
 	}
 
 	return Game;
