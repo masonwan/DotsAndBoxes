@@ -13,22 +13,21 @@ body
 
 #board
 {
-    padding: 0 10px;
-    border-right: 5px dashed lightgray;
+    /*padding: 0 10px;
+    border-right: 5px dashed lightgray;*/
 }
 
 div, table, td, tr
 {
     padding: 0;
     margin: 0;
-    border: 0px;
+    border: 0;
     font-size: xx-large;
+    box-sizing: border-box;
 }
 
 .dot
 {
-    width: 10px;
-    height: 10px;
     background-color: black;
     border-radius: 100%;
 }
@@ -38,32 +37,18 @@ div, table, td, tr
     border-radius: 15px;
 }
 
-.vline
-{
-    width: 10px;
-    height: 90px;
-}
-
-.hline
-{
-    width: 90px;
-    height: 10px;
-}
-
 .box
 {
-    width: 90px;
-    height: 90px;
     background-color: lightgray;
     border-radius: 15px;
 }
 
-.yellow, #yellowScore
+.yellow
 {
     background-color: #ffd800;
 }
 
-.green, #greenScore
+.green
 {
     background-color: #339900;
 }
@@ -76,7 +61,6 @@ div, table, td, tr
 /* Sidebar */
 #sidebar
 {
-    min-width: 240px;
     padding: 0 10px;
     vertical-align: top;
 }

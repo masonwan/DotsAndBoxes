@@ -6,7 +6,7 @@ document.addEventListener('readystatechange', onReadyStateChanged);
 
 var game = null;
 var YELLOW = 1, GREEN = -1;
-var numRows = numCols = 5;
+var numRows = numCols = 4;
 var players = {};
 players[YELLOW] = null;
 players[GREEN] = null;
@@ -33,7 +33,6 @@ function onReadyStateChanged() {
 	}
 
 	generatePlayerOptions();
-	//selectElements[1].options[1].selected = true;
 }
 
 // Grid size
@@ -43,45 +42,45 @@ function onGridSizeChanged() {
 	numRows = numCols = (value < 3 || value > 10) ? 3 : parseInt(value);
 	game = new Game(numRows, numCols, YELLOW);
 
-	console.log(game);
-
 	generateBoard();
+	clearTimeout(timeoutId);
 	continuePlay();
 }
 
 function changeBoardSize() {
+	var sidebarWidth = 240;
+	var sidebarElement = document.querySelector('#sidebar');
+	sidebarElement.style.minWidth = sidebarElement.style.width = sidebarWidth + 'px';
+
+	var boardElement = document.querySelector('#board');
+	var availableWidth = Math.max(window.innerWidth - (2 * ((numCols + 1) * 2) - sidebarWidth), 500);
+	var availableHeight = Math.max(window.innerHeight - (2 * ((numRows + 1) * 2)), 500);
+	var boardLength = Math.min(availableWidth, availableHeight);
+
 	var ratioDotToBox = 4;
-	var boardLength = Math.min(window.innerHeight, window.innerWidth * 0.8, window.innerWidth - 240) - 20;
-	var dotLength = Math.floor(boardLength / ((ratioDotToBox * numRows) + (numRows + 1)));
+	var dotLength = Math.floor(boardLength / ((ratioDotToBox * numCols) + (numCols + 1)));
 	var boxLength = dotLength * ratioDotToBox;
 
-	var elementNodeList = document.querySelectorAll('td, tr');
+	var elementNodeList = document.querySelectorAll('#board td');
 
 	for (var i = 0; i < elementNodeList.length; i++) {
 		var element = elementNodeList[i];
 		var height, width;
 
-		switch (element.className) {
-			case 'dot':
-				height = width = dotLength;
-				break;
-			case 'vline':
-				height = boxLength;
-				width = dotLength;
-				break;
-			case 'hline':
-				height = dotLength;
-				width = boxLength;
-				break;
-			case 'box':
-				height = width = boxLength;
-				break;
-			default:
-				continue;
+		if (element.classList.contains('dot')) {
+			height = width = dotLength;
+		} else if (element.classList.contains('vline')) {
+			width = dotLength;
+			height = boxLength;
+		} else if (element.classList.contains('hline')) {
+			width = boxLength;
+			height = dotLength;
+		} else if (element.classList.contains('box')) {
+			height = width = boxLength;
 		}
 
-		element.style.height = height + 'px';
-		element.style.width = width + 'px';
+		element.style.minHeight = element.style.height = height + 'px';
+		element.style.minWidth = element.style.width = width + 'px';
 	}
 }
 
@@ -111,7 +110,6 @@ function generatePlayerOptions() {
 function onPlayerChanged() {
 	var target = event.target;
 	var index = parseInt(target.value);
-	console.log('index: ' + index);
 	var player = (index === 0) ? null : aiList[index - 1];
 
 	if (target.classList.contains('yellow')) {
@@ -123,22 +121,25 @@ function onPlayerChanged() {
 	continuePlay();
 }
 
+var timeoutId;
+
 function continuePlay() {
-	while (true) {
-		if (game.isEnded) {
-			return;
-		}
+	if (game.isEnded) {
+		return;
+	}
 
-		var player = players[game.currentPlayer];
+	var player = players[game.currentPlayer];
 
-		if (player === null) {
-			// Human player, wait for play.
-			return;
-		}
+	if (player === null) {
+		// Human player, wait for play.
+		return;
+	}
 
+	timeoutId = setTimeout(function () {
 		var line = player.think(game);
 		playLine(line);
-	}
+		continuePlay();
+	}, 100);
 }
 
 function onLineClicked() {
@@ -179,7 +180,10 @@ function playLine(line) {
 // Board
 function generateBoard() {
 	var boardTable = document.querySelector('#board');
-	boardTable.innerHTML = '';
+
+	while (boardTable.hasChildNodes()) {
+		boardTable.removeChild(boardTable.lastChild);
+	}
 
 	var numHorizontalCells = numRows * 2 + 1;
 	var numVerticalCells = numCols * 2 + 1;
@@ -253,6 +257,7 @@ function updateScoreBoard() {
 }
 
 function onRestartClicked() {
+	clearTimeout(timeoutId);
 	onGridSizeChanged();
 }
 
