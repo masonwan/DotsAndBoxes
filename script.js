@@ -33,6 +33,24 @@ function onReadyStateChanged() {
 	}
 
 	generatePlayerOptions();
+
+	//playLine(game.board.lines[0]);
+	//playLine(game.board.lines[2]);
+	//playLine(game.board.lines[8]);
+	//playLine(game.board.lines[4]);
+	//playLine(game.board.lines[12]);
+	//playLine(game.board.lines[9]);
+	//playLine(game.board.lines[14]);
+	//playLine(game.board.lines[10]);
+	//playLine(game.board.lines[18]);
+	//playLine(game.board.lines[22]);
+	//playLine(game.board.lines[20]);
+	//playLine(game.board.lines[23]);
+
+	//selectElements[0].value = 3;
+	//var ev = document.createEvent('Event');
+	//ev.initEvent('change', true, true);
+	//selectElements[0].dispatchEvent(ev);
 }
 
 // Grid size
@@ -118,9 +136,11 @@ function onPlayerChanged() {
 		players[GREEN] = player;
 	}
 
+	window.clearTimeout(timeoutId);
 	continuePlay();
 }
 
+var delayedMilliseconds = 10;
 var timeoutId;
 
 function continuePlay() {
@@ -134,12 +154,11 @@ function continuePlay() {
 		// Human player, wait for play.
 		return;
 	}
-
 	timeoutId = setTimeout(function () {
 		var line = player.think(game);
 		playLine(line);
 		continuePlay();
-	}, 100);
+	}, delayedMilliseconds);
 }
 
 function onLineClicked() {
@@ -315,23 +334,25 @@ Game = (function () {
 		line.owner = game.currentPlayer;
 
 		var boxes = line.boxes;
-		var doesOwn = false;
+		var ownedBoxes = [];
 
 		for (var i = 0; i < boxes.length; i++) {
 			var box = boxes[i];
 
 			if (box.owner !== null) {
-				doesOwn = true;
-				break;
+				this.emptyBoxes.splice(this.emptyBoxes.indexOf(box), 1);
+				ownedBoxes.push(box);
 			}
 		}
 
-		if (doesOwn === false) {
+		if (ownedBoxes.length === 0) {
 			this.changePlayer();
 		}
 
 		this.records.push(line);
 		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
+
+		return ownedBoxes;
 	}
 
 	Object.defineProperties(Game.prototype, {
@@ -356,6 +377,8 @@ Game = (function () {
 
 Board = (function () {
 	function Board(numRows, numCols) {
+		this.numRows = numRows;
+		this.numCols = numCols;
 		this.boxes = new Array(numRows);
 		this.boxList = [];
 		this.lines = new Array((numRows + 1) * numCols + numRows * (numCols + 1));
@@ -404,7 +427,6 @@ Board = (function () {
 })();
 
 Box = (function () {
-
 	Object.defineProperties(Box.prototype, {
 		numOwnedLines: {
 			get: function () {
