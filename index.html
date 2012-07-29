@@ -3,6 +3,7 @@
 <head>
     <title></title>
     <script type="text/javascript" src="script.js"></script>
+    <!--<script type="text/javascript" src="test.js"></script>-->
     <script type="text/javascript" src="random play ai.js"></script>
     <script type="text/javascript" src="simple ai.js"></script>
     <script type="text/javascript" src="normal ai.js"></script>
@@ -13,51 +14,13 @@
         <tr>
             <td>
                 <table id="board">
-                    <tr>
-                        <td class="dot"></td>
-                        <td class="hline"></td>
-                        <td class="dot"></td>
-                    </tr>
-                    <tr>
-                        <td class="vline"></td>
-                        <td class="box"></td>
-                        <td class="vline"></td>
-                    </tr>
-                    <tr>
-                        <td class="dot"></td>
-                        <td class="hline"></td>
-                        <td class="dot"></td>
-                    </tr>
-                    <tr>
-                        <td class="vline"></td>
-                        <td class="box"></td>
-                        <td class="vline"></td>
-                    </tr>
-                    <tr>
-                        <td class="dot"></td>
-                        <td class="hline"></td>
-                        <td class="dot"></td>
-                    </tr>
-                    <tr>
-                        <td class="vline"></td>
-                        <td class="box"></td>
-                        <td class="vline"></td>
-                        <td class="box"></td>
-                        <td class="vline"></td>
-                        <td class="box"></td>
-                        <td class="vline"></td>
-                    </tr>
-                    <tr>
-                        <td class="dot"></td>
-                        <td class="hline"></td>
-                        <td class="dot"></td>
-                    </tr>
                 </table>
             </td>
             <td id="sidebar">
                 <p>
                     Grid size
                     <select id="gridSize">
+                        <option>2</option>
                         <option selected>3</option>
                         <option>4</option>
                         <option>5</option>
@@ -70,6 +33,8 @@
                 </p>
                 <div>
                     <button id="restart">Restart</button>
+                    <button id="undo">Undo</button>
+                    <button id="redo">Redo</button>
                 </div>
                 <div>
                     <table>

@@ -1,3 +1,233 @@
+// Game objects
+Color = { Yellow: 1, Green: -1 };
+
+Game = (function () {
+	Game.prototype.changePlayer = function () {
+		var temp = this.currentPlayer;
+		this.currentPlayer = this.opponentPlayer;
+		this.opponentPlayer = temp;
+	}
+
+	Game.prototype.play = function (line, isRedo) {
+		if (line == null) {
+			throw 'line is null';
+		}
+
+		if (line.owner !== null) {
+			throw 'Play a owned line.';
+		}
+
+		if (isRedo == null) {
+			isRedo = false;
+		}
+
+		line.owner = game.currentPlayer;
+		var ownedBoxes = [];
+
+		line.boxes.forEach(function (box, index, array) {
+			if (box.owner !== null) {
+				this.emptyBoxes.splice(this.emptyBoxes.indexOf(box), 1);
+				ownedBoxes.push(box);
+			}
+		}, this);
+
+		if (ownedBoxes.length === 0) {
+			this.changePlayer();
+		}
+
+		this.undoList.push(line);
+
+		if (!isRedo) {
+			this.redoList.length = 0;
+		}
+
+		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
+
+		return ownedBoxes;
+	}
+
+	Game.prototype.undo = function () {
+		if (this.undoList.length <= 0) {
+			return;
+		}
+
+		var line = this.undoList.pop();
+		line.owner = null;
+
+		line.boxes.forEach(function (box, index, array) {
+			box.owner = null;
+			box.update();
+		});
+
+		this.redoList.push(line);
+
+		return line;
+	}
+
+	Game.prototype.redo = function () {
+		if (this.redoList.length <= 0) {
+			return;
+		}
+
+		var line = this.redoList.pop();
+		game.play(line, true);
+	}
+
+	Object.defineProperties(Game.prototype, {
+		isEnded: {
+			get: function () {
+				return this.emptyLines.length === 0;
+			}
+		}
+	});
+
+	function Game(numRows, numCols, currentPlayer) {
+		this.board = new Board(numRows, numCols);
+		this.currentPlayer = currentPlayer;
+		this.opponentPlayer = -currentPlayer;
+		this.undoList = [];
+		this.redoList = [];
+		this.emptyLines = this.board.lines.slice(0);
+		this.emptyBoxes = this.board.boxList.slice(0);
+
+		this.scoreTable = {};
+		this.scoreTable[Color.Green] = 0;
+		this.scoreTable[Color.Yellow] = 0;
+	}
+
+	return Game;
+})();
+
+Board = (function () {
+	function Board(numRows, numCols) {
+		this.numRows = numRows;
+		this.numCols = numCols;
+		this.boxes = new Array(numRows);
+		this.boxList = [];
+		this.lines = new Array((numRows + 1) * numCols + numRows * (numCols + 1));
+
+		var boxId = 0;
+
+		for (var row = 0; row < numRows; row++) {
+			this.boxes[row] = new Array(numCols);
+
+			for (var col = 0; col < numCols; col++) {
+				var lines = new Array(4), line;
+				var baseId = row * (2 * numCols + 1) + col;
+
+				// Up line
+				if (row === 0) {
+					line = lines[0] = new Line(baseId);
+					this.lines[line.id] = line;
+				} else {
+					line = lines[0] = this.boxes[row - 1][col].downLine;
+				}
+
+				// Right line
+				line = lines[1] = new Line(baseId + numCols + 1);
+				this.lines[line.id] = line;
+
+				// Down line
+				line = lines[2] = new Line(baseId + 2 * numCols + 1);
+				this.lines[line.id] = line;
+
+				// Left line
+				if (col === 0) {
+					line = lines[3] = new Line(baseId + numCols);
+					this.lines[line.id] = line;
+				} else {
+					lines[3] = this.boxes[row][col - 1].rightLine;
+				}
+
+				var box = this.boxes[row][col] = new Box(boxId, row, col, lines);
+				this.boxList.push(box);
+				++boxId;
+			}
+		}
+	}
+
+	return Board;
+})();
+
+Box = (function () {
+	Box.prototype.update = function () {
+		var count = 0;
+
+		for (var i = 0; i < this.lines.length; i++) {
+			if (this.lines[i].owner) {
+				++count;
+			}
+		}
+
+		this.numOwnedLines = count;
+		this.isCritical = count === 3;
+	}
+
+	function Box(id, row, col, lines) {
+		this.id = id;
+
+		if (!lines) {
+			throw 'lines is set';
+		}
+
+		if (lines.length != 4) {
+			throw "lines' length is wrong";
+		}
+
+		this.numOwnedLines = 0;
+		this.isCritical = false;
+
+		this.row = row;
+		this.column = col;
+		this.owner = null;
+		this.lines = lines;
+
+		for (var i = 0; i < lines.length; i++) {
+			var line = lines[i];
+
+			if (line.boxes.indexOf(this) < 0) {
+				line.boxes.push(this);
+			}
+		}
+
+		this.upLine = lines[0];
+		this.rightLine = lines[1];
+		this.downLine = lines[2];
+		this.leftLine = lines[3];
+	}
+
+	return Box;
+})();
+
+Line = (function () {
+	Object.defineProperties(Line.prototype, {
+		owner: {
+			get: function () { return this._owner; },
+			set: function (value) {
+				this._owner = value;
+
+				for (var i = 0; i < this.boxes.length; i++) {
+					var box = this.boxes[i];
+					box.update();
+
+					if (box.numOwnedLines === 4) {
+						box.owner = value;
+					}
+				}
+			}
+		}
+	});
+
+	function Line(id) {
+		this.id = id;
+		this.boxes = [];
+		this._owner = null;
+	}
+
+	return Line;
+})();
+
+// Local variables
 if (!window.aiList) {
 	window.aiList = [];
 }
@@ -5,11 +235,12 @@ if (!window.aiList) {
 document.addEventListener('readystatechange', onReadyStateChanged);
 
 var game = null;
-var YELLOW = 1, GREEN = -1;
 var numRows = numCols = 4;
-var players = {};
-players[YELLOW] = null;
-players[GREEN] = null;
+var players = {}; 26
+players[Color.Yellow] = null;
+players[Color.Green] = null;
+
+var restartButton, undoButton, redoButton;
 
 function onReadyStateChanged() {
 	document.removeEventListener('readystatechange', onReadyStateChanged);
@@ -22,8 +253,15 @@ function onReadyStateChanged() {
 	// Resize
 	window.addEventListener('resize', changeBoardSize);
 
-	var restartButton = document.querySelector('#restart');
+	// Buttons
+	restartButton = document.querySelector('#restart');
 	restartButton.addEventListener('click', onRestartClicked);
+
+	undoButton = document.querySelector('#undo');
+	undoButton.addEventListener('click', onUndoClicked);
+
+	redoButton = document.querySelector('#redo');
+	redoButton.addEventListener('click', onRedoClicked);
 
 	// Player options
 	var selectElements = document.querySelectorAll('.player');
@@ -33,32 +271,14 @@ function onReadyStateChanged() {
 	}
 
 	generatePlayerOptions();
-
-	//playLine(game.board.lines[0]);
-	//playLine(game.board.lines[2]);
-	//playLine(game.board.lines[8]);
-	//playLine(game.board.lines[4]);
-	//playLine(game.board.lines[12]);
-	//playLine(game.board.lines[9]);
-	//playLine(game.board.lines[14]);
-	//playLine(game.board.lines[10]);
-	//playLine(game.board.lines[18]);
-	//playLine(game.board.lines[22]);
-	//playLine(game.board.lines[20]);
-	//playLine(game.board.lines[23]);
-
-	//selectElements[0].value = 3;
-	//var ev = document.createEvent('Event');
-	//ev.initEvent('change', true, true);
-	//selectElements[0].dispatchEvent(ev);
 }
 
 // Grid size
 function onGridSizeChanged() {
 	var selectElement = document.querySelector('select');
 	var value = selectElement.value;
-	numRows = numCols = (value < 3 || value > 10) ? 3 : parseInt(value);
-	game = new Game(numRows, numCols, YELLOW);
+	numRows = numCols = (value < 2 || value > 10) ? 3 : parseInt(value);
+	game = new Game(numRows, numCols, Color.Yellow);
 
 	generateBoard();
 	clearTimeout(timeoutId);
@@ -131,9 +351,9 @@ function onPlayerChanged() {
 	var player = (index === 0) ? null : aiList[index - 1];
 
 	if (target.classList.contains('yellow')) {
-		players[YELLOW] = player;
+		players[Color.Yellow] = player;
 	} else if (target.classList.contains('green')) {
-		players[GREEN] = player;
+		players[Color.Green] = player;
 	}
 
 	window.clearTimeout(timeoutId);
@@ -154,6 +374,7 @@ function continuePlay() {
 		// Human player, wait for play.
 		return;
 	}
+
 	timeoutId = setTimeout(function () {
 		var line = player.think(game);
 		playLine(line);
@@ -183,17 +404,9 @@ function playLine(line) {
 
 	game.play(line);
 
-	var boxes = line.boxes;
-
-	for (var i = 0; i < boxes.length; i++) {
-		var box = boxes[i];
-
-		if (box.owner !== null) {
-			box.element.classList.add(getPlayerClass(box.owner));
-		}
-	}
-
+	updateBoard();
 	updateScoreBoard();
+	updateButtons();
 }
 
 // Board
@@ -255,11 +468,27 @@ function generateBoard() {
 	updateScoreBoard();
 }
 
+function updateBoard() {
+	game.board.lines.forEach(function (line) {
+		line.element.classList.remove(getPlayerClass(Color.Green));
+		line.element.classList.remove(getPlayerClass(Color.Yellow));
+		line.element.classList.remove(getPlayerClass(null));
+		line.element.classList.add(getPlayerClass(line.owner));
+	}, this);
+	
+	game.board.boxList.forEach(function (box) {
+		box.element.classList.remove(getPlayerClass(Color.Green));
+		box.element.classList.remove(getPlayerClass(Color.Yellow));
+		box.element.classList.remove(getPlayerClass(null));
+		box.element.classList.add(getPlayerClass(box.owner));
+	}, this);
+}
+
 function updateScoreBoard() {
 	var boxes = game.board.boxList;
 	var scoreTable = {};
-	scoreTable[GREEN] = 0;
-	scoreTable[YELLOW] = 0;
+	scoreTable[Color.Yellow] = 0;
+	scoreTable[Color.Green] = 0;
 
 	for (var i = 0; i < boxes.length; i++) {
 		var box = boxes[i];
@@ -270,23 +499,49 @@ function updateScoreBoard() {
 	}
 
 	var yellowDiv = document.querySelector('.score.yellow');
-	yellowDiv.innerText = scoreTable[YELLOW];
+	yellowDiv.innerText = scoreTable[Color.Yellow];
 	var greenDiv = document.querySelector('.score.green');
-	greenDiv.innerText = scoreTable[GREEN];
+	greenDiv.innerText = scoreTable[Color.Green];
 }
 
+// Buttons
 function onRestartClicked() {
 	clearTimeout(timeoutId);
 	onGridSizeChanged();
+	updateButtons();
+}
+
+function onUndoClicked() {
+	var line = game.undo();
+
+	if (line == null) {
+		return;
+	}
+	
+	updateScoreBoard();
+	updateBoard();
+	updateButtons();
+}
+
+function onRedoClicked() {
+	game.redo();
+	updateScoreBoard();
+	updateBoard();
+	updateButtons();
+}
+
+function updateButtons() {
+	undoButton.disabled = game.undoList.length <= 0;
+	redoButton.disabled = game.redoList.length <= 0;
 }
 
 // Helper
 function getPlayerClass(player) {
-	if (player === YELLOW) {
+	if (player === Color.Yellow) {
 		return 'yellow';
 	}
 
-	if (player === GREEN) {
+	if (player === Color.Green) {
 		return 'green';
 	}
 
@@ -312,196 +567,3 @@ Object.prototype.clone = function () {
 
 	return obj;
 };
-
-// Game objects
-Game = (function () {
-	Game.prototype.changePlayer = function () {
-		var temp = this.currentPlayer;
-		this.currentPlayer = this.opponentPlayer;
-		this.opponentPlayer = temp;
-	}
-
-	Game.prototype.play = function (line) {
-		if (line == null) {
-			throw 'line is null';
-		}
-
-		if (line.owner !== null) {
-			console.log('Play a owned line.');
-			return;
-		}
-
-		line.owner = game.currentPlayer;
-
-		var boxes = line.boxes;
-		var ownedBoxes = [];
-
-		for (var i = 0; i < boxes.length; i++) {
-			var box = boxes[i];
-
-			if (box.owner !== null) {
-				this.emptyBoxes.splice(this.emptyBoxes.indexOf(box), 1);
-				ownedBoxes.push(box);
-			}
-		}
-
-		if (ownedBoxes.length === 0) {
-			this.changePlayer();
-		}
-
-		this.records.push(line);
-		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
-
-		return ownedBoxes;
-	}
-
-	Object.defineProperties(Game.prototype, {
-		isEnded: {
-			get: function () {
-				return this.emptyLines.length === 0;
-			}
-		}
-	});
-
-	function Game(numRows, numCols, currentPlayer) {
-		this.board = new Board(numRows, numCols);
-		this.currentPlayer = currentPlayer;
-		this.opponentPlayer = -currentPlayer;
-		this.records = [];
-		this.emptyLines = this.board.lines.slice(0);
-		this.emptyBoxes = this.board.boxList.slice(0);
-	}
-
-	return Game;
-})();
-
-Board = (function () {
-	function Board(numRows, numCols) {
-		this.numRows = numRows;
-		this.numCols = numCols;
-		this.boxes = new Array(numRows);
-		this.boxList = [];
-		this.lines = new Array((numRows + 1) * numCols + numRows * (numCols + 1));
-
-		var boxId = 0;
-
-		for (var row = 0; row < numRows; row++) {
-			this.boxes[row] = new Array(numCols);
-
-			for (var col = 0; col < numCols; col++) {
-				var lines = new Array(4), line;
-				var baseId = row * (2 * numCols + 1) + col;
-
-				// Up line
-				if (row === 0) {
-					line = lines[0] = new Line(baseId);
-					this.lines[line.id] = line;
-				} else {
-					line = lines[0] = this.boxes[row - 1][col].downLine;
-				}
-
-				// Right line
-				line = lines[1] = new Line(baseId + numCols + 1);
-				this.lines[line.id] = line;
-
-				// Down line
-				line = lines[2] = new Line(baseId + 2 * numCols + 1);
-				this.lines[line.id] = line;
-
-				// Left line
-				if (col === 0) {
-					line = lines[3] = new Line(baseId + numCols);
-					this.lines[line.id] = line;
-				} else {
-					lines[3] = this.boxes[row][col - 1].rightLine;
-				}
-
-				var box = this.boxes[row][col] = new Box(boxId, row, col, lines);
-				this.boxList.push(box);
-				++boxId;
-			}
-		}
-	}
-
-	return Board;
-})();
-
-Box = (function () {
-	Object.defineProperties(Box.prototype, {
-		numOwnedLines: {
-			get: function () {
-				var count = 0;
-
-				for (var i = 0; i < this.lines.length; i++) {
-					if (this.lines[i].owner) {
-						++count;
-					}
-				}
-
-				return count;
-			}
-		},
-		isCritical: {
-			get: function () { return this.numOwnedLines === 3; }
-		}
-	});
-
-	function Box(id, row, col, lines) {
-		this.id = id;
-
-		if (!lines) {
-			throw 'lines is set';
-		}
-
-		if (lines.length != 4) {
-			throw "lines' length is wrong";
-		}
-
-		this.row = row;
-		this.column = col;
-		this.owner = null;
-		this.lines = lines;
-
-		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i];
-
-			if (line.boxes.indexOf(this) < 0) {
-				line.boxes.push(this);
-			}
-		}
-
-		this.upLine = lines[0];
-		this.rightLine = lines[1];
-		this.downLine = lines[2];
-		this.leftLine = lines[3];
-	}
-
-	return Box;
-})();
-
-Line = (function () {
-	Object.defineProperties(Line.prototype, {
-		owner: {
-			get: function () { return this._owner; },
-			set: function (value) {
-				this._owner = value;
-
-				for (var i = 0; i < this.boxes.length; i++) {
-					var box = this.boxes[i];
-
-					if (box.numOwnedLines === 4) {
-						box.owner = value;
-					}
-				}
-			}
-		}
-	});
-
-	function Line(id) {
-		this.id = id;
-		this.boxes = [];
-		this._owner = null;
-	}
-
-	return Line;
-})();
