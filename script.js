@@ -8,17 +8,13 @@ Game = (function () {
 		this.opponentPlayer = temp;
 	}
 
-	Game.prototype.play = function (line, isRedo) {
+	Game.prototype.play = function (line) {
 		if (line == null) {
 			throw 'line is null';
 		}
 
 		if (line.owner !== null) {
 			throw 'Play a owned line.';
-		}
-
-		if (isRedo == null) {
-			isRedo = false;
 		}
 
 		line.owner = game.currentPlayer;
@@ -36,10 +32,7 @@ Game = (function () {
 		}
 
 		this.undoList.push(line);
-
-		if (!isRedo) {
-			this.redoList.length = 0;
-		}
+		this.redoList.length = 0;
 
 		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
 
@@ -54,12 +47,24 @@ Game = (function () {
 		var line = this.undoList.pop();
 		line.owner = null;
 
+		var restoredBoxes = [];
+
 		line.boxes.forEach(function (box, index, array) {
 			box.owner = null;
 			box.update();
-		});
+
+			if (box.isCritical) {
+				restoredBoxes.push(box);
+				this.emptyBoxes.push(box);
+			}
+		}, this);
+
+		if (restoredBoxes.length === 0) {
+			this.changePlayer();
+		}
 
 		this.redoList.push(line);
+		this.emptyLines.push(line);
 
 		return line;
 	}
@@ -70,7 +75,24 @@ Game = (function () {
 		}
 
 		var line = this.redoList.pop();
-		game.play(line, true);
+		line.owner = this.currentPlayer;
+		var ownedBoxes = [];
+
+		line.boxes.forEach(function (box, index, array) {
+			if (box.owner !== null) {
+				this.emptyBoxes.splice(this.emptyBoxes.indexOf(box), 1);
+				ownedBoxes.push(box);
+			}
+		}, this);
+
+		if (ownedBoxes.length === 0) {
+			this.changePlayer();
+		}
+
+		this.undoList.push(line);
+		this.emptyLines.splice(this.emptyLines.indexOf(line), 1);
+
+		return ownedBoxes;
 	}
 
 	Object.defineProperties(Game.prototype, {
@@ -245,14 +267,6 @@ var restartButton, undoButton, redoButton;
 function onReadyStateChanged() {
 	document.removeEventListener('readystatechange', onReadyStateChanged);
 
-	// Grid size
-	var selectElement = document.querySelector('#gridSize');
-	selectElement.addEventListener('change', onGridSizeChanged);
-	onGridSizeChanged();
-
-	// Resize
-	window.addEventListener('resize', changeBoardSize);
-
 	// Buttons
 	restartButton = document.querySelector('#restart');
 	restartButton.addEventListener('click', onRestartClicked);
@@ -262,6 +276,14 @@ function onReadyStateChanged() {
 
 	redoButton = document.querySelector('#redo');
 	redoButton.addEventListener('click', onRedoClicked);
+
+	// Grid size
+	var selectElement = document.querySelector('#gridSize');
+	selectElement.addEventListener('change', onGridSizeChanged);
+	onGridSizeChanged();
+
+	// Resize
+	window.addEventListener('resize', changeBoardSize);
 
 	// Player options
 	var selectElements = document.querySelectorAll('.player');
@@ -281,6 +303,8 @@ function onGridSizeChanged() {
 	game = new Game(numRows, numCols, Color.Yellow);
 
 	generateBoard();
+	updateButtons();
+
 	clearTimeout(timeoutId);
 	continuePlay();
 }
@@ -475,7 +499,7 @@ function updateBoard() {
 		line.element.classList.remove(getPlayerClass(null));
 		line.element.classList.add(getPlayerClass(line.owner));
 	}, this);
-	
+
 	game.board.boxList.forEach(function (box) {
 		box.element.classList.remove(getPlayerClass(Color.Green));
 		box.element.classList.remove(getPlayerClass(Color.Yellow));
@@ -508,7 +532,6 @@ function updateScoreBoard() {
 function onRestartClicked() {
 	clearTimeout(timeoutId);
 	onGridSizeChanged();
-	updateButtons();
 }
 
 function onUndoClicked() {
@@ -517,7 +540,7 @@ function onUndoClicked() {
 	if (line == null) {
 		return;
 	}
-	
+
 	updateScoreBoard();
 	updateBoard();
 	updateButtons();
@@ -533,23 +556,23 @@ function onRedoClicked() {
 function updateButtons() {
 	undoButton.disabled = game.undoList.length <= 0;
 	redoButton.disabled = game.redoList.length <= 0;
+
+	var currentPlayerScoreElement = document.querySelector('.score.' + getPlayerClass(game.currentPlayer));
+	var oppoentPlayerScoreElement = document.querySelector('.score.' + getPlayerClass(game.opponentPlayer));
 }
 
 // Helper
 function getPlayerClass(player) {
-	if (player === Color.Yellow) {
-		return 'yellow';
+	switch (player) {
+		case Color.Yellow:
+			return 'yellow';
+		case Color.Green:
+			return 'green';
+		case null:
+			return 'none';
+		default:
+			throw 'Unknown player: ' + player;
 	}
-
-	if (player === Color.Green) {
-		return 'green';
-	}
-
-	if (player === null) {
-		return 'none';
-	}
-
-	throw 'Unknown player: ' + player;
 }
 
 Object.prototype.clone = function () {
