@@ -277,6 +277,8 @@ function onReadyStateChanged() {
 	redoButton = document.querySelector('#redo');
 	redoButton.addEventListener('click', onRedoClicked);
 
+	window.addEventListener('keydown', onKeyPressed);
+
 	// Grid size
 	var selectElement = document.querySelector('#gridSize');
 	selectElement.addEventListener('change', onGridSizeChanged);
@@ -528,7 +530,7 @@ function updateScoreBoard() {
 	greenDiv.innerText = scoreTable[Color.Green];
 }
 
-// Buttons
+// Buttons, Shortcuts
 function onRestartClicked() {
 	clearTimeout(timeoutId);
 	onGridSizeChanged();
@@ -559,6 +561,14 @@ function updateButtons() {
 
 	var currentPlayerScoreElement = document.querySelector('.score.' + getPlayerClass(game.currentPlayer));
 	var oppoentPlayerScoreElement = document.querySelector('.score.' + getPlayerClass(game.opponentPlayer));
+}
+
+function onKeyPressed(ev) {
+	if (ev.keyCode === 85) {
+		onUndoClicked();
+	} else if (ev.keyCode === 82) {
+		onRedoClicked();
+	}
 }
 
 // Helper
